@@ -1,6 +1,6 @@
 /**
  * Availability Service
- * Checks resource availability for bookings
+ * Checks resource availability for bookings with timezone handling
  */
 
 const Booking = require('../models/Booking');
@@ -16,6 +16,19 @@ const Coach = require('../models/Coach');
 const timeToMinutes = (timeString) => {
   const [hours, minutes] = timeString.split(':').map(Number);
   return hours * 60 + minutes;
+};
+
+/**
+ * Get local time string from Date object (handles timezone)
+ * @param {Date} date - Date object
+ * @returns {string} Time in "HH:MM" format in local timezone
+ */
+const getLocalTimeString = (date) => {
+  const d = new Date(date);
+  // Get hours and minutes in local timezone
+  const hours = String(d.getHours()).padStart(2, '0');
+  const minutes = String(d.getMinutes()).padStart(2, '0');
+  return `${hours}:${minutes}`;
 };
 
 /**
@@ -147,7 +160,7 @@ const checkEquipmentAvailability = async (equipmentRequests, startTime, endTime,
 };
 
 /**
- * Check if a coach is available - FIXED VERSION WITH PROPER TIME COMPARISON
+ * Check if a coach is available - FIXED with proper timezone handling
  */
 const checkCoachAvailability = async (coachId, startTime, endTime, excludeBookingId = null) => {
   try {
@@ -168,7 +181,16 @@ const checkCoachAvailability = async (coachId, startTime, endTime, excludeBookin
 
     // Check coach's weekly availability schedule
     const bookingDate = new Date(startTime);
-    const dayOfWeek = bookingDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
+    const dayOfWeek = bookingDate.getUTCDay(); // Use UTC day to match database
+
+    console.log('🔍 Coach availability check:', {
+      coachId,
+      coachName: coach.name,
+      bookingDate: bookingDate.toISOString(),
+      dayOfWeek,
+      startTime: startTime.toISOString(),
+      endTime: endTime.toISOString()
+    });
 
     // Find if coach works on this day
     const dayAvailability = coach.availability.find(slot => slot.dayOfWeek === dayOfWeek);
@@ -180,16 +202,19 @@ const checkCoachAvailability = async (coachId, startTime, endTime, excludeBookin
       };
     }
 
-    // Extract time components for comparison using proper method
-    const bookingStart = new Date(startTime);
-    const bookingEnd = new Date(endTime);
-    
-    // Get time strings in HH:MM format
-    const bookingStartTime = `${String(bookingStart.getHours()).padStart(2, '0')}:${String(bookingStart.getMinutes()).padStart(2, '0')}`;
-    const bookingEndTime = `${String(bookingEnd.getHours()).padStart(2, '0')}:${String(bookingEnd.getMinutes()).padStart(2, '0')}`;
+    // Get time in HH:MM format from the Date objects (uses local server time)
+    const bookingStartTime = getLocalTimeString(startTime);
+    const bookingEndTime = getLocalTimeString(endTime);
     
     const coachStartTime = dayAvailability.startTime;
     const coachEndTime = dayAvailability.endTime;
+
+    console.log('⏰ Time comparison:', {
+      bookingStart: bookingStartTime,
+      bookingEnd: bookingEndTime,
+      coachStart: coachStartTime,
+      coachEnd: coachEndTime
+    });
 
     // Convert to minutes for accurate comparison
     const bookingStartMinutes = timeToMinutes(bookingStartTime);
@@ -199,6 +224,13 @@ const checkCoachAvailability = async (coachId, startTime, endTime, excludeBookin
 
     // Check if booking time falls within coach's working hours
     if (bookingStartMinutes < coachStartMinutes || bookingEndMinutes > coachEndMinutes) {
+      console.log('❌ Coach time conflict:', {
+        bookingStartMinutes,
+        bookingEndMinutes,
+        coachStartMinutes,
+        coachEndMinutes
+      });
+      
       return {
         available: false,
         reason: `Coach is only available from ${coachStartTime} to ${coachEndTime} on this day`
@@ -230,6 +262,7 @@ const checkCoachAvailability = async (coachId, startTime, endTime, excludeBookin
       };
     }
 
+    console.log('✅ Coach is available');
     return { available: true, coach };
   } catch (error) {
     console.error('Error checking coach availability:', error);
