@@ -22,22 +22,38 @@ const adminRoutes = require('./routes/adminRoutes');
 const app = express();
 
 // CORS Configuration - Production ready
-const allowedOrigins = process.env.FRONTEND_URL 
-  ? [
-      process.env.FRONTEND_URL,
-      'http://localhost:3000',
-      'http://localhost:5173'
-    ]
-  : ['http://localhost:3000', 'http://localhost:5173'];
+// CORS Configuration - Production ready with multiple origins
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'https://sports-facility-booking.vercel.app',
+  'https://sports-facility-booking-git-main-akhila-gantas-projects.vercel.app'
+];
+
+// Add environment variable origins
+if (process.env.FRONTEND_URL) {
+  const envOrigins = process.env.FRONTEND_URL.split(',').map(url => url.trim());
+  allowedOrigins.push(...envOrigins);
+}
+
+// Also allow any Vercel preview deployments
+const isVercelPreview = (origin) => {
+  return origin && (
+    origin.includes('.vercel.app') || 
+    origin.includes('akhila-gantas-projects.vercel.app')
+  );
+};
 
 const corsOptions = {
   origin: function (origin, callback) {
-    // Allow requests with no origin (mobile apps, Postman, etc.)
+    // Allow requests with no origin (mobile apps, Postman, curl, etc.)
     if (!origin) return callback(null, true);
     
-    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV === 'development') {
+    // Check if origin is in allowed list or is a Vercel deployment
+    if (allowedOrigins.includes(origin) || isVercelPreview(origin) || process.env.NODE_ENV === 'development') {
       callback(null, true);
     } else {
+      console.log('❌ CORS blocked origin:', origin);
       callback(new Error('Not allowed by CORS'));
     }
   },
@@ -47,8 +63,8 @@ const corsOptions = {
   allowedHeaders: ['Content-Type', 'Authorization']
 };
 
-// Middleware
 app.use(cors(corsOptions));
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
