@@ -181,7 +181,7 @@ const checkCoachAvailability = async (coachId, startTime, endTime, excludeBookin
 
     // Check coach's weekly availability schedule
     const bookingDate = new Date(startTime);
-    const dayOfWeek = bookingDate.getUTCDay(); // Use UTC day to match database
+    const dayOfWeek = bookingDate.getDay(); // Use UTC day to match database
 
     console.log('🔍 Coach availability check:', {
       coachId,
