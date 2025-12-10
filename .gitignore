@@ -1,0 +1,32 @@
+# Environment variables - NEVER COMMIT REAL SECRETS
+.env
+**/.env
+backend/.env
+frontend/.env
+
+# Keep example files - SAFE TO COMMIT
+!.env.example
+!**/.env.example
+
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build outputs
+dist/
+build/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
