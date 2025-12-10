@@ -163,65 +163,114 @@ const checkEquipmentAvailability = async (equipmentRequests, startTime, endTime,
  * Check if a coach is available - FIXED with proper timezone handling
  */
 // FIXED — Uses local day instead of UTC day
+/**
+ * Check if a coach is available - UTC aware version
+ */
 const checkCoachAvailability = async (coachId, startTime, endTime, excludeBookingId = null) => {
   try {
-    if (!coachId) return { available: true };
+    // If no coach is requested, return available
+    if (!coachId) {
+      return { available: true };
+    }
 
     const coach = await Coach.findById(coachId);
-    if (!coach) return { available: false, reason: "Coach not found" };
-    if (!coach.isActive) return { available: false, reason: "Coach is inactive" };
 
+    if (!coach) {
+      return { available: false, reason: 'Coach not found' };
+    }
+
+    if (!coach.isActive) {
+      return { available: false, reason: 'Coach is currently inactive' };
+    }
+
+    // Check coach's weekly availability schedule
     const bookingDate = new Date(startTime);
+    const dayOfWeek = bookingDate.getUTCDay(); // Use UTC day
 
-    // ✅ FIXED — use local day, not UTC
-    const dayOfWeek = bookingDate.getDay();
+    // Find if coach works on this day
+    const dayAvailability = coach.availability.find(slot => slot.dayOfWeek === dayOfWeek);
 
-    const dayAvailability = coach.availability.find(a => a.dayOfWeek === dayOfWeek);
     if (!dayAvailability) {
-      return {
-        available: false,
-        reason: `Coach is not available on ${["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][dayOfWeek]}`
+      return { 
+        available: false, 
+        reason: `Coach is not available on ${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][dayOfWeek]}` 
       };
     }
 
-    const bookingStartTime = getLocalTimeString(startTime);
-    const bookingEndTime = getLocalTimeString(endTime);
+    // Get UTC time strings from booking
+    const bookingStartHours = bookingDate.getUTCHours();
+    const bookingStartMinutes = bookingDate.getUTCMinutes();
+    const bookingStartTime = `${String(bookingStartHours).padStart(2, '0')}:${String(bookingStartMinutes).padStart(2, '0')}`;
+    
+    const bookingEndDate = new Date(endTime);
+    const bookingEndHours = bookingEndDate.getUTCHours();
+    const bookingEndMinutes = bookingEndDate.getUTCMinutes();
+    const bookingEndTime = `${String(bookingEndHours).padStart(2, '0')}:${String(bookingEndMinutes).padStart(2, '0')}`;
+    
+    const coachStartTime = dayAvailability.startTime;
+    const coachEndTime = dayAvailability.endTime;
 
-    const bookingStartMinutes = timeToMinutes(bookingStartTime);
-    const bookingEndMinutes = timeToMinutes(bookingEndTime);
-    const coachStartMinutes = timeToMinutes(dayAvailability.startTime);
-    const coachEndMinutes = timeToMinutes(dayAvailability.endTime);
+    // Convert to minutes for accurate comparison
+    const bookingStartMin = timeToMinutes(bookingStartTime);
+    const bookingEndMin = timeToMinutes(bookingEndTime);
+    const coachStartMin = timeToMinutes(coachStartTime);
+    const coachEndMin = timeToMinutes(coachEndTime);
 
-    if (bookingStartMinutes < coachStartMinutes || bookingEndMinutes > coachEndMinutes) {
+    // Debug logging
+    console.log('🔍 Coach availability check (UTC):', {
+      coachName: coach.name,
+      dayOfWeek,
+      bookingStart: bookingStartTime,
+      bookingEnd: bookingEndTime,
+      coachStart: coachStartTime,
+      coachEnd: coachEndTime,
+      bookingStartMin,
+      bookingEndMin,
+      coachStartMin,
+      coachEndMin
+    });
+
+    // Check if booking time falls within coach's working hours
+    if (bookingStartMin < coachStartMin || bookingEndMin > coachEndMin) {
       return {
         available: false,
-        reason: `Coach is only available from ${dayAvailability.startTime} to ${dayAvailability.endTime} on this day`
+        reason: `Coach is only available from ${coachStartTime} to ${coachEndTime} on this day`
       };
     }
 
-    // Check conflicting bookings
+    // Check for conflicting bookings
     const query = {
-      "coach.coachId": coachId,
-      status: { $in: ["confirmed", "pending"] },
+      'coach.coachId': coachId,
+      status: { $in: ['confirmed', 'pending'] },
       $or: [
         { startTime: { $lt: endTime, $gte: startTime } },
         { endTime: { $gt: startTime, $lte: endTime } },
         { startTime: { $lte: startTime }, endTime: { $gte: endTime } }
       ]
     };
-    if (excludeBookingId) query._id = { $ne: excludeBookingId };
 
-    const conflict = await Booking.findOne(query);
-    if (conflict) {
-      return { available: false, reason: "Coach is already booked for this slot" };
+    if (excludeBookingId) {
+      query._id = { $ne: excludeBookingId };
     }
 
+    const conflictingBooking = await Booking.findOne(query);
+
+    if (conflictingBooking) {
+      return {
+        available: false,
+        reason: 'Coach is already booked for this time slot',
+        conflictingBooking
+      };
+    }
+
+    console.log('✅ Coach is available');
     return { available: true, coach };
-  } catch (err) {
-    console.error(err);
-    throw err;
+  } catch (error) {
+    console.error('Error checking coach availability:', error);
+    throw error;
   }
 };
+
 
 
 /**
