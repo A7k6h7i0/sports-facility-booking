@@ -120,11 +120,12 @@ const coaches = [
     pricePerHour: 40,
     isActive: true,
     availability: [
-      { dayOfWeek: 1, startTime: '09:00', endTime: '17:00' },
-      { dayOfWeek: 2, startTime: '09:00', endTime: '17:00' },
-      { dayOfWeek: 3, startTime: '09:00', endTime: '17:00' },
-      { dayOfWeek: 4, startTime: '09:00', endTime: '17:00' },
-      { dayOfWeek: 5, startTime: '09:00', endTime: '17:00' }
+      // Monday-Friday: 09:00-17:00 IST = 03:30-11:30 UTC
+      { dayOfWeek: 1, startTime: '03:30', endTime: '11:30' },
+      { dayOfWeek: 2, startTime: '03:30', endTime: '11:30' },
+      { dayOfWeek: 3, startTime: '03:30', endTime: '11:30' },
+      { dayOfWeek: 4, startTime: '03:30', endTime: '11:30' },
+      { dayOfWeek: 5, startTime: '03:30', endTime: '11:30' }
     ],
     bio: 'Former professional tennis player with 15 years coaching experience',
     experience: 15,
@@ -136,11 +137,13 @@ const coaches = [
     pricePerHour: 35,
     isActive: true,
     availability: [
-      { dayOfWeek: 1, startTime: '10:00', endTime: '18:00' },
-      { dayOfWeek: 2, startTime: '10:00', endTime: '18:00' },
-      { dayOfWeek: 3, startTime: '10:00', endTime: '18:00' },
-      { dayOfWeek: 5, startTime: '10:00', endTime: '18:00' },
-      { dayOfWeek: 6, startTime: '08:00', endTime: '14:00' }
+      // Mon, Tue, Wed, Fri: 10:00-18:00 IST = 04:30-12:30 UTC
+      { dayOfWeek: 1, startTime: '04:30', endTime: '12:30' },
+      { dayOfWeek: 2, startTime: '04:30', endTime: '12:30' },
+      { dayOfWeek: 3, startTime: '04:30', endTime: '12:30' },
+      { dayOfWeek: 5, startTime: '04:30', endTime: '12:30' },
+      // Saturday: 08:00-14:00 IST = 02:30-08:30 UTC
+      { dayOfWeek: 6, startTime: '02:30', endTime: '08:30' }
     ],
     bio: 'National badminton champion and certified coach',
     experience: 10,
@@ -152,16 +155,20 @@ const coaches = [
     pricePerHour: 45,
     isActive: true,
     availability: [
-      { dayOfWeek: 2, startTime: '14:00', endTime: '20:00' },
-      { dayOfWeek: 4, startTime: '14:00', endTime: '20:00' },
-      { dayOfWeek: 6, startTime: '09:00', endTime: '17:00' },
-      { dayOfWeek: 0, startTime: '09:00', endTime: '15:00' }
+      // Tuesday, Thursday: 14:00-20:00 IST = 08:30-14:30 UTC
+      { dayOfWeek: 2, startTime: '08:30', endTime: '14:30' },
+      { dayOfWeek: 4, startTime: '08:30', endTime: '14:30' },
+      // Saturday: 09:00-17:00 IST = 03:30-11:30 UTC
+      { dayOfWeek: 6, startTime: '03:30', endTime: '11:30' },
+      // Sunday: 09:00-15:00 IST = 03:30-09:30 UTC
+      { dayOfWeek: 0, startTime: '03:30', endTime: '09:30' }
     ],
     bio: 'College basketball coach with expertise in skill development',
     experience: 12,
     rating: 4.7
   }
 ];
+
 
 const pricingRules = [
   {
