@@ -7,7 +7,16 @@ const Booking = require('../models/Booking');
 const Court = require('../models/Court');
 const Equipment = require('../models/Equipment');
 const Coach = require('../models/Coach');
-const { parseTime, isTimeInRange } = require('../utils/timeUtils');
+
+/**
+ * Convert time string to minutes for comparison
+ * @param {string} timeString - Time in "HH:MM" format
+ * @returns {number} Total minutes
+ */
+const timeToMinutes = (timeString) => {
+  const [hours, minutes] = timeString.split(':').map(Number);
+  return hours * 60 + minutes;
+};
 
 /**
  * Check if a court is available for the given time slot
@@ -138,7 +147,7 @@ const checkEquipmentAvailability = async (equipmentRequests, startTime, endTime,
 };
 
 /**
- * Check if a coach is available - FIXED VERSION
+ * Check if a coach is available - FIXED VERSION WITH PROPER TIME COMPARISON
  */
 const checkCoachAvailability = async (coachId, startTime, endTime, excludeBookingId = null) => {
   try {
@@ -171,14 +180,25 @@ const checkCoachAvailability = async (coachId, startTime, endTime, excludeBookin
       };
     }
 
-    // Extract time components for comparison
-    const bookingStartTime = startTime.toTimeString().slice(0, 5); // "HH:MM"
-    const bookingEndTime = endTime.toTimeString().slice(0, 5); // "HH:MM"
+    // Extract time components for comparison using proper method
+    const bookingStart = new Date(startTime);
+    const bookingEnd = new Date(endTime);
+    
+    // Get time strings in HH:MM format
+    const bookingStartTime = `${String(bookingStart.getHours()).padStart(2, '0')}:${String(bookingStart.getMinutes()).padStart(2, '0')}`;
+    const bookingEndTime = `${String(bookingEnd.getHours()).padStart(2, '0')}:${String(bookingEnd.getMinutes()).padStart(2, '0')}`;
+    
     const coachStartTime = dayAvailability.startTime;
     const coachEndTime = dayAvailability.endTime;
 
+    // Convert to minutes for accurate comparison
+    const bookingStartMinutes = timeToMinutes(bookingStartTime);
+    const bookingEndMinutes = timeToMinutes(bookingEndTime);
+    const coachStartMinutes = timeToMinutes(coachStartTime);
+    const coachEndMinutes = timeToMinutes(coachEndTime);
+
     // Check if booking time falls within coach's working hours
-    if (bookingStartTime < coachStartTime || bookingEndTime > coachEndTime) {
+    if (bookingStartMinutes < coachStartMinutes || bookingEndMinutes > coachEndMinutes) {
       return {
         available: false,
         reason: `Coach is only available from ${coachStartTime} to ${coachEndTime} on this day`
